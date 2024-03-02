@@ -1,5 +1,4 @@
 
-
 const express = require('express');
 const router = express.Router();
 const userModel = require('../models/user');
@@ -16,7 +15,7 @@ router.post('/create', (req, res) => {
   res.status(201).json(newUser);
 });
 
-router.get('/:username', (req, res) => {
+router.get('/username', (req, res) => {
   const { username } = req.params;
   const user = userModel.getUserByUsername(username);
 
@@ -27,7 +26,7 @@ router.get('/:username', (req, res) => {
   res.json(user);
 });
 
-router.put('/:username', (req, res) => {
+router.put('/username', (req, res) => {
   const { username } = req.params;
   const { isAdmin } = req.body;
 
@@ -39,5 +38,16 @@ router.put('/:username', (req, res) => {
 
   res.json({ message: 'User updated successfully' });
 });
+
+
+router.get('/', function (req, res, next) {
+  req.db.all("SELECT * FROM users", (err, rows) => {
+    if (err) {
+      return next(err);
+    }
+    res.json({ users: rows });
+  });
+});
+
 
 module.exports = router;
