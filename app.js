@@ -1,29 +1,43 @@
 var createError = require('http-errors');
 var express = require('express');
+var cors = require('cors');
+const db = require('./db');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var cors = require('cors');
 
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database(':memory:');
+
+
+
+
+// Initialize the SQLite database and create the users table
+
 
 db.serialize(() => {
+  console.log('Database serialized');
   db.run(`
-CREATE TABLE users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT NOT NULL,
-  password TEXT NOT NULL
-);
-  `);
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL,
+      email TEXT NOT NULL,
+      password TEXT NOT NULL
+    );
+  `, (err) => {
+    if (err) {
+      console.error('Error creating table:', err.message);
+    } else {
+      console.log('Table created successfully');
+    }
+  });
 });
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
 
+
+var indexRouter = require('./routes/index');
+const userRouter = require('./routes/user');
 var app = express();
 
-app.use(cors()); // Place cors middleware here
+
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
@@ -33,10 +47,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors()); 
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
-
+app.use('/user', userRouter);
 
 
 // catch 404 and forward to error handler
