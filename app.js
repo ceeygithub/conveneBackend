@@ -10,9 +10,10 @@ var logger = require('morgan');
 
 
 
+
+
+
 // Initialize the SQLite database and create the users table
-
-
 db.serialize(() => {
   console.log('Database serialized');
   db.run(`
@@ -20,7 +21,8 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL,
       email TEXT NOT NULL,
-      password TEXT NOT NULL
+      password TEXT NOT NULL,
+      role TEXT NOT NULL
     );
   `, (err) => {
     if (err) {
@@ -30,6 +32,7 @@ db.serialize(() => {
     }
   });
 });
+
 
 
 
@@ -47,8 +50,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(cors()); 
 
+app.use(cors());
 app.use('/', indexRouter);
 app.use('/user', userRouter);
 
@@ -68,6 +71,8 @@ app.use(function(err, req, res, next) {
   // render the error page
   res.status(err.status || 500);
   res.render('error');
+  console.log('Requested URL:', req.url);
+
 });
 
 

@@ -2,6 +2,8 @@ var express = require("express");
 const router = express.Router();
 const UserModel = require("../models/user");
 const { hashPassword, comparePassword } = require("../helpers/auth");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 
 
@@ -51,13 +53,13 @@ const signupUser = async (req, res) => {
 
         const hashedPassword = await hashPassword(password);
 
-        let role = "Regular";
+        let role = 'user';
 
         const user = await UserModel.create({
             username,
             password: hashedPassword,
             // role,
-            role: 'Regular',
+            role: 'user',
         });
 
         return res.status(200).json(user);
@@ -66,42 +68,44 @@ const signupUser = async (req, res) => {
     }
 };
 
-// Login Endpoint
+
+// Login endpoint
 const loginUser = async (req, res) => {
+
     try {
         const { username, password } = req.body;
 
-        // const user = await UserModel.findOne({ username });
+        // Retrieve user from the SQLite database
         const user = await UserModel.getUserByUsername(username);
 
+        // Check if the user exists
         if (!user) {
-            return res.json({
-                error: "User not found",
-            });
+            return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // check password
-        const matchPassword = await comparePassword(password, user.password);
+        // Compare hashed passwords securely
+        const passwordMatch = await bcrypt.comparePassword(password, user.password);
 
-        // Determine the redirect URL based on user role
-        if (!matchPassword) {
-            return res.json({
-                error: "Incorrect Password",
-            });
-        }
+        if (passwordMatch) {
+            // Generate a JWT token (optional)
+            const token = jwt.sign({ userId: user.id, username: user.username }, 'your-secret-key', { expiresIn: '1h' });
 
-        let redirectUrl = "/dashboard";
-     
-        if (user.role === "Admin") {
-            redirectUrl = "/admindashboard";
-        } else if (user.role === "Regular") {
-            redirectUrl = "/profile";
+            // Send the token to the client (optional)
+            res.json({ token });
+
+            // You can also send other user information if needed
+            // res.json({ userId: user.id, username: user.username, isAdmin: user.isAdmin });
+
+        } else {
+            res.status(401).json({ error: 'Invalid credentials' });
         }
-        return res.json({ redirectUrl });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+
 
 // Logout Endpoint
 const logoutUser = async (req, res) => {
@@ -114,9 +118,11 @@ const logoutUser = async (req, res) => {
 };
 
 
+
 router.get("/", test);
 router.post("/signup", signupUser);
 router.post("/login", loginUser);
 router.delete("/logout", logoutUser);
+
 
 module.exports = router;
